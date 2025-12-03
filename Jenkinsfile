@@ -4,8 +4,8 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     } 
     environment {
-        // Asegúrate de que el ID de credencial 'AWS_ACCESS_KEY_ID' contenga AMBOS (Access Key ID y Secret Access Key).
-        // Si usaste el tipo 'Username with password', el ID de la credencial debe contener el Access Key ID como Username.
+        // La clave de acceso de AWS y la clave secreta se inyectan aquí.
+        // Asumiendo que has creado credenciales tipo 'Username with password' en Jenkins.
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
@@ -13,19 +13,15 @@ pipeline {
    agent  any
     stages {
         
-        // --- ELIMINAR EL STAGE DE CHECKOUT ---
-        // stage('checkout') { ... } 
-        // -------------------------------------
-
         stage('Plan') {
             steps {
                 script {
-                    // Usamos el bloque 'dir' para asegurarnos de que todos los comandos
-                    // de Terraform se ejecuten DENTRO de la subcarpeta 'terraform'.
-                    dir("terraform") {
-                        // El 'pwd' ya no es necesario, el contexto es 'terraform/'
+                    // *** CORRECCIÓN CRÍTICA DE LA RUTA ***
+                    // Cambiamos dir("terraform") a dir("IAC/infra/terraform")
+                    dir("IAC/infra/terraform") {
                         sh 'terraform init'
                         sh "terraform plan -out tfplan"
+                        // Guardamos el plan en un archivo para el stage 'Approval'
                         sh 'terraform show -no-color tfplan > tfplan.txt'
                     }
                 }
@@ -41,9 +37,10 @@ pipeline {
 
            steps {
                script {
-                   // La ruta aquí es 'terraform/tfplan.txt' porque Jenkins siempre
-                   // busca el archivo desde la raíz del workspace.
-                   def plan = readFile 'terraform/tfplan.txt' 
+                   // *** CORRECCIÓN CRÍTICA DE LA RUTA ***
+                   // Leemos el archivo desde la ruta completa, ya que Jenkins lo busca desde la raíz del workspace.
+                   def plan = readFile 'IAC/infra/terraform/tfplan.txt' 
+                   
                    input message: "Do you want to apply the plan?",
                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                }
@@ -53,7 +50,8 @@ pipeline {
         stage('Apply') {
             steps {
                 script {
-                    dir("terraform") {
+                    // *** CORRECCIÓN CRÍTICA DE LA RUTA ***
+                    dir("IAC/infra/terraform") {
                         sh "terraform apply -input=false tfplan"
                     }
                 }
