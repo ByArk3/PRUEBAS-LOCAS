@@ -1,12 +1,8 @@
 pipeline {
     
-    // Configura el pipeline para que se ejecute en la imagen de Docker personalizada
-    // donde instalaste Checkov. Esto es necesario para evitar el error 'not found'.
     agent {
         docker {
             image 'jenkins-checkov:latest'
-            // Usa 'args' para ejecutar como root si instalaste dependencias importantes como root
-            // args '-u root' 
         }
     }
 
@@ -25,9 +21,7 @@ pipeline {
                 script {
                     echo "Ejecutando Checkov para escanear el código..."
                     
-                    // Nota: Ya que estás usando 'agent docker', 
-                    // la ruta absoluta NO es estrictamente necesaria si el binario está en el PATH del contenedor.
-                    // Usaremos el comando simple, que es la práctica estándar dentro de Docker.
+ 
                     sh "checkov -d ./dockerCheckov/ -o junit --output-file checkov_report.xml"
                 }
             }
@@ -42,15 +36,12 @@ pipeline {
         }
     }
     
-    // --- POST-BUILD ACTIONS: Publicar Reporte ---
     post {
-        // La sección 'always' asegura que el reporte se publique, 
-        // incluso si el stage de Checkov falla (encuentra vulnerabilidades)
+
         always {
             script {
                 echo "Publicando reporte de Checkov en la interfaz de Jenkins..."
-                // Busca el reporte XML generado por Checkov.
-                // La ruta es relativa al workspace raíz.
+
                 junit 'dockerCheckov/checkov_report.xml'
             }
         }
