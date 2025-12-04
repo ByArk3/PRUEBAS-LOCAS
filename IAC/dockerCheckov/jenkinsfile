@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+    // Línea 3: parece ser un comentario o una directiva incompleta
+    // //desplieguejenkins/checkovDisableInlineSkips -dir=../desplieguejenkins/
+
+    stages {
+        stage ('checkov disable skip') {
+            steps {
+                script {
+                    sh "echo 'nada'"
+                }
+            }
+        }
+
+        stage ('checkov') {
+            steps {
+                script {
+                    // El comando Checkov está incompleto, le falta el output
+                    sh "checkov -d ./dockerCheckov/" 
+                }
+            }
+        }
+
+        stage ('Deploy') {
+            steps {
+                script {
+                    sh "echo 'deploy'"
+                }
+            }
+        }
+    }
+}
